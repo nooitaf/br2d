@@ -1,4 +1,5 @@
 debug = false
+math.randomseed(os.clock())
 
 require('server')
 require('zone')
@@ -13,6 +14,7 @@ function love.load()
 
   bgcolor = {r=10,g=10,b=10}
   fontcolor = {r=46,g=115,b=46}
+
 
   server.load()
   zone.load()

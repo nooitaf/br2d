@@ -13,6 +13,7 @@ function client.load()
   gameInfo.playercount = 0
   gameInfo.playercount_alive = 0
   gameInfo.rank = 0
+  gameInfo.inPlane = false
 
   ground_sound_water = love.audio.newSource( "assets/shoot.ogg" )
   ground_sound_water:setLooping(false)
@@ -43,7 +44,7 @@ function client.load()
   client.data.aimX = x
   client.data.aimY = y
   client.data.running = runningLimit
-  client.data.inPlane = true
+  client.data.inPlane = false
   client.data.isShooting = false
   client.data.shootTimer = 0
   client.data.shootTimerTrigger = .1
@@ -84,6 +85,7 @@ function client.load()
 	end )
   Net:registerCMD( "startGame", function( data, param, id, deltatime )
     client.data.inPlane = true
+    gameInfo.inPlane = true
     print('start game')
 	end )
 
@@ -210,7 +212,7 @@ function client.draw()
     client.data.y = target.y
   end
 
-  if client.data.inPlane and gameInfo.planeX then
+  if gameInfo.inPlane and gameInfo.planeX then
     target.x = gameInfo.planeX
     target.y = gameInfo.planeY
   end
@@ -228,33 +230,38 @@ function client.draw()
 
   -- draw player
   local c = client.data
-  if c.r and c.g and c.b and c.x and c.y then
-    -- visual area
-    love.graphics.setColor( 30, 30, 30, 40 )
-    love.graphics.circle("fill",c.x,c.y, 20)
-    -- draw aim
-    love.graphics.setColor( 100, 100, 100, 100 )
-    love.graphics.setLineStyle("smooth")
-    love.graphics.line(c.x,c.y,c.x+c.aimX/mapZoomScale,c.y+c.aimY/mapZoomScale)
-    -- draw player
-    love.graphics.setColor( c.r, c.g, c.b )
-    love.graphics.rectangle("fill", c.x - 1, c.y - 1, 2, 2 )
-  end
+  if not show_map then
+    love.graphics.setColor(255,255,255)
+    love.graphics.draw(bg_img,0,0,0,0.5,0.5)
 
-  -- draw enemies
-  for key,value in pairs(enemies) do
-    if value.x and value.y and value.r and value.g and value.b then
-      love.graphics.setColor( value.r, value.g, value.b, value.lastSeen * 255 )
-      love.graphics.rectangle("fill", value.x - 1, value.y - 1, 2, 2 )
+    if c.r and c.g and c.b and c.x and c.y then
+      -- visual area
+      love.graphics.setColor( 30, 30, 30, 40 )
+      love.graphics.circle("fill",c.x,c.y, 20)
+      -- draw aim
+      love.graphics.setColor( 100, 100, 100, 100 )
+      love.graphics.setLineStyle("smooth")
+      love.graphics.line(c.x,c.y,c.x+c.aimX/mapZoomScale,c.y+c.aimY/mapZoomScale)
+      -- draw player
+      love.graphics.setColor( c.r, c.g, c.b )
+      love.graphics.rectangle("fill", c.x - 1, c.y - 1, 2, 2 )
     end
-  end
 
-  -- draw death zone
-  if gameInfo and gameInfo.zone_scale then
-    love.graphics.setColor( 230, 130, 130, 100 )
-    love.graphics.circle("line",gameInfo.zone_x,gameInfo.zone_y,gameInfo.zone_scale)
-    love.graphics.setColor( 130, 130, 130, 100 )
-    love.graphics.circle("line",gameInfo.zone_target_x,gameInfo.zone_target_y,gameInfo.zone_target_scale)
+    -- draw enemies
+    for key,value in pairs(enemies) do
+      if value.x and value.y and value.r and value.g and value.b then
+        love.graphics.setColor( value.r, value.g, value.b, value.lastSeen * 255 )
+        love.graphics.rectangle("fill", value.x - 1, value.y - 1, 2, 2 )
+      end
+    end
+
+    -- draw death zone
+    if gameInfo and gameInfo.zone_scale then
+      love.graphics.setColor( 230, 130, 130, 100 )
+      love.graphics.circle("line",gameInfo.zone_x,gameInfo.zone_y,gameInfo.zone_scale)
+      love.graphics.setColor( 130, 130, 130, 100 )
+      love.graphics.circle("line",gameInfo.zone_target_x,gameInfo.zone_target_y,gameInfo.zone_target_scale)
+    end
   end
 
   -- play sound
@@ -444,6 +451,9 @@ end
 function client.update(dt)
   -- always update
   Net:update(dt)
+
+  -- plane check
+  client.data.inPlane = gameInfo.inPlane
 
   -- update shooting state
   if love.mouse.isDown(1) then
