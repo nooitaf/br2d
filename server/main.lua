@@ -1,9 +1,11 @@
 debug = false
 math.randomseed(os.clock())
 
+GAMESPEED = .2
 require('server')
 require('zone')
 require('plane')
+require('loot')
 
 function love.load()
   bg_img = love.graphics.newImage("assets/map.png")
@@ -15,10 +17,10 @@ function love.load()
   bgcolor = {r=10,g=10,b=10}
   fontcolor = {r=46,g=115,b=46}
 
-
   server.load()
   zone.load()
   plane.load()
+  loot.load()
 end
 
 function love.draw()
@@ -29,12 +31,14 @@ function love.draw()
   server.draw()
   zone.draw()
   plane.draw()
+  loot.draw()
 end
 
 function love.update(dt)
   server.update(dt)
   zone.update(dt)
   plane.update(dt)
+  loot.update(dt)
 end
 
 function love.keypressed(key)

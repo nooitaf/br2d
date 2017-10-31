@@ -14,17 +14,22 @@ function zone.load()
   zone.target_scale = 0
   zone.idleTime = 0
   zone.active = false
+  zone.state = 'wait'
 end
 
 function zone.draw()
   if zone.active then
     -- draw death zone
-    love.graphics.setColor( 130, 130, 230, 100 )
+    love.graphics.setColor( 255, 20, 20, 200 )
     love.graphics.circle("line",zone.x,zone.y,zone.scale)
     -- draw death zone target
-    love.graphics.setColor( 230, 30, 30, 100 )
+    love.graphics.setColor( 20, 255, 20, 100 )
     love.graphics.circle("line",zone.target_x,zone.target_y,zone.target_scale)
   end
+
+  -- draw zone state
+  love.graphics.setColor(255,255,0)
+  love.graphics.printf(zone.state,0,5,love.graphics.getWidth(),"right")
 end
 
 function zone.update(dt)
@@ -36,6 +41,9 @@ function zone.update(dt)
       zone.animation = nil
       createTargetDeathZone()
       zone.startCyclus()
+      zone.state = 'idle'
+    else
+      zone.state = 'moving'
     end
   end
 
@@ -79,7 +87,8 @@ end
 
 function zone.startCyclus()
   zone.idleTime = idleTimeDefault
-  zone.animation = tween.new(10,zone,{x=zone.target_x,y=zone.target_y,scale=zone.target_scale},'linear')
+  zone.animation = tween.new(plane.speed*GAMESPEED*3,zone,{x=zone.target_x,y=zone.target_y,scale=zone.target_scale},'linear')
+  plane.startSupport()
 end
 
 function zone.reset()
@@ -89,6 +98,7 @@ function zone.reset()
   zone.scale = 350
   zone.active = false
   createTargetDeathZone()
+  zone.state = 'ready'
 end
 
 function zone.start()
@@ -99,6 +109,8 @@ function zone.start()
   zone.active = true
   createTargetDeathZone()
   zone.startCyclus()
+  zone.state = 'idle'
+
 end
 
 function createTargetDeathZone()

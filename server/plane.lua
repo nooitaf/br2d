@@ -4,21 +4,37 @@ tween = require 'lib/tween'
 function plane.load()
   plane.img = love.graphics.newImage("assets/plane.png")
   plane.img:setFilter("nearest","nearest")
-  plane.x = 100
-  plane.y = 100
+  plane.smokeImage = love.graphics.newImage("assets/smoke.png")
+  plane.smokeImage:setFilter("nearest","nearest")
+  plane.ps = love.graphics.newParticleSystem(plane.smokeImage,64)
+  plane.ps:setParticleLifetime(10*GAMESPEED,15*GAMESPEED)
+  plane.ps:setEmissionRate(2/GAMESPEED)
+  plane.ps:setSizeVariation(.1)
+  plane.ps:setSpin(4,.1)
+  plane.ps:setSizes(.2,.8,1,1,1,1)
+  plane.ps:setLinearAcceleration(-.1,-.1,.1,.1)
+  plane.ps:setColors(255,0,0,255,0,255,0,0)
+  plane.x = -100
+  plane.y = -100
   plane.targetX = 400
   plane.targetY = 400
-  plane.speed = 2
+  plane.speed = 20*GAMESPEED
   plane.angle = 0
   plane.animation = nil
-  plane.jumpTimer = 10
+  plane.jumpTimer = 10*GAMESPEED
   plane.isCarrier = false
   plane.active = false
   plane.items = {}
-  plane.startCarrier()
+  -- plane.startCarrier()
 end
 
 function plane.draw()
+  -- smoke
+  if plane.ps:getCount() then
+    love.graphics.setColor(255,255,255)
+    love.graphics.draw(plane.ps,0,0)
+  end
+  -- plane
   if plane.active then
     love.graphics.setColor(255,255,255)
     local angle = angleFromPoint(plane.x,plane.y,plane.targetX,plane.targetY)
@@ -30,6 +46,9 @@ end
 
 
 function plane.update(dt)
+  plane.ps:moveTo(plane.x,plane.y)
+  plane.ps:update(dt)
+
   if plane.animation then
 
     plane.jumpTimer = plane.jumpTimer - dt
@@ -39,7 +58,7 @@ function plane.update(dt)
 
         local item = table.remove(plane.items)
         if item then
-          dropSupportBox(plane.x,plane.y,10,item)
+          loot.dropSupportBox(plane.x,plane.y,10,item)
         end
 
 
@@ -54,12 +73,15 @@ function plane.update(dt)
 
     local complete = plane.animation:update(dt)
     if complete then
-      plane.animation = nil
+      plane.ps:stop()
       plane.active = false
-      if plane.type == 'carrier' then
-        zone.start()
-      elseif plane.type == 'support' then
+      if plane.ps:getCount() < 1 then
+        plane.animation = nil
+        if plane.type == 'carrier' then
+          zone.start()
+        elseif plane.type == 'support' then
 
+        end
       end
     end
 
@@ -75,6 +97,7 @@ function plane.startCarrier()
   plane.animation = tween.new(plane.speed,plane,{x=plane.targetX, y=plane.targetY},'linear')
   plane.jumpTimer = plane.speed - 1
   plane.active = true
+  plane.ps:start()
 end
 
 
@@ -85,6 +108,7 @@ function plane.startSupport()
   plane.animation = tween.new(plane.speed,plane,{x=plane.targetX, y=plane.targetY},'linear')
   plane.jumpTimer = math.random()*plane.speed/8*7
   plane.active = true
+  plane.ps:start()
 end
 
 

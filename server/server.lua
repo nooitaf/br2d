@@ -4,7 +4,6 @@ gameInfo = {}
 
 players = {}
 
-loot = {}
 
 Net = require("lib/net")
 
@@ -19,17 +18,11 @@ function server.load()
   gameInfo.dead = false
   gameInfo.health = 0
 
-  lootTimer = 0
-  lootTimerTrigger = 10
-
-
   gameInfoNetUpdateRate = 1/30
   gameInfoNetUpdateCounter = 0
 
   Net:init( "Server" )
   Net:connect( nil, 25045 )
-
-
   Net:registerCMD( "updateClientMeta", function( meta, param, id, deltatime )
     -- print('client data ----------------------',#client_data)
 		if not meta.name then return end
@@ -45,8 +38,6 @@ function server.load()
       players[id].inPlane = meta.inPlane
     end
 	end )
-
-
   Net:registerCMD( "updateClientInfo", function( client_data, param, id, deltatime )
     -- print('client data ----------------------',#client_data)
 		if not client_data.name then return end
@@ -71,7 +62,6 @@ function server.load()
       -- if not Net.users[id].health then Net.users[id].health = 100 end
     end
 	end )
-
   Net:registerCMD( "updateClientPosition", function( data, param, id, deltatime )
     -- print('client position data ----------------------',#data)
     if not data.x then return end
@@ -88,10 +78,6 @@ end
 function server.draw()
   -- love.graphics.setColor(0,0,255)
   -- love.graphics.rectangle("fill",0,0 ,love.graphics.getWidth(),love.graphics.getHeight()/8)
-  for _,item in pairs( loot ) do
-    love.graphics.setColor( 225, 80, 50, 255 )
-    love.graphics.rectangle("fill",item.x-item.size/2,item.y-item.size/2, item.size, item.size)
-  end
 
   for k,c in pairs( players ) do
     -- draw circles visible range
@@ -239,14 +225,6 @@ function server.update(dt)
 
     gameInfo.serverClock = server.clock
 
-    lootTimer = lootTimer + dt
-    if lootTimer > lootTimerTrigger then
-      if zone.scale > zone.min_scale then
-        plane.startSupport()
-      end
-      lootTimer = 0
-    end
-
     -- game info update
     sendGameInfo(dt)
 
@@ -339,20 +317,9 @@ function startGame()
     players[uid].inPlane = true
     Net:send({},"startGame",nil,uid)
   end
-  loot = {}
+  loot.load()
   zone.reset()
-  plane.startCarrier()
-end
-
-function dropSupportBox(x,y,s, item)
-  print(x,y,s, item)
-  local l = {
-    x = x,
-    y = y,
-    size = s,
-    content = item
-  }
-  table.insert(loot,l)
+  -- plane.startCarrier()
 end
 
 function tablelength(T)
