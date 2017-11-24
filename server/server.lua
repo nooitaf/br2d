@@ -1,9 +1,6 @@
 server = {}
-
 gameInfo = {}
-
 players = {}
-
 
 Net = require("lib/net")
 
@@ -21,8 +18,15 @@ function server.load()
   gameInfoNetUpdateRate = 1/30
   gameInfoNetUpdateCounter = 0
 
+  restartWaitCounter = 0
+  restartWaitCounterMax = 2
+
   Net:init( "Server" )
   Net:connect( nil, 25045 )
+  Net:setMaxPing( 200 )
+  Net:registerCMD( "tik", function( data, param, id, deltatime )
+    Net:send({time=data.time},"tok",nil,id)
+	end )
   Net:registerCMD( "updateClientMeta", function( meta, param, id, deltatime )
     -- print('client data ----------------------',#client_data)
 		if not meta.name then return end
@@ -35,7 +39,11 @@ function server.load()
       players[id].r = meta.r
       players[id].g = meta.g
       players[id].b = meta.b
-      players[id].inPlane = meta.inPlane
+      if players[id].inPlane and not meta.inPlane then
+        players[id].inPlane = false
+        players[id].inPlaneQueue = false
+        gameInfo.gameState = "activated"
+      end
     end
 	end )
   Net:registerCMD( "updateClientInfo", function( client_data, param, id, deltatime )
@@ -56,7 +64,11 @@ function server.load()
       players[id].b = client_data.b
       players[id].aimX = client_data.aimX
       players[id].aimY = client_data.aimY
-      players[id].inPlane = client_data.inPlane
+      if players[id].inPlane and not client_data.inPlane then
+        players[id].inPlane = false
+        players[id].inPlaneQueue = false
+        gameInfo.gameState = "activated"
+      end
       players[id].x = client_data.x
       players[id].y = client_data.y
       -- if not Net.users[id].health then Net.users[id].health = 100 end
@@ -75,6 +87,12 @@ function server.load()
 	end )
 end
 
+
+
+
+
+
+
 function server.draw()
   -- love.graphics.setColor(0,0,255)
   -- love.graphics.rectangle("fill",0,0 ,love.graphics.getWidth(),love.graphics.getHeight()/8)
@@ -87,17 +105,15 @@ function server.draw()
       love.graphics.circle("fill",c.x,c.y, viewDistance)
     end
     -- draw circles hitarea
-    if c.r and c.g and c.b and c.x and c.y and (#c.visibleTo > 0) then
+    if c.r and c.g and c.b and c.x and c.y and (#c.enemies > 0) then
       love.graphics.setColor( 60, 60, 60, 100 )
       love.graphics.circle("fill",c.x,c.y, viewDistance)
     end
     -- draw connections
-    if c.r and c.g and c.b and c.x and c.y and (#c.visibleTo > 0) then
-      for k2,c2 in pairs( c.visibleTo ) do
+    if c.r and c.g and c.b and c.x and c.y and (#c.enemies > 0) then
+      for k2,c2 in pairs( c.enemies ) do
         love.graphics.setColor( 255,255,255,20 )
-        local u = {}
-        u = players[c2]
-        love.graphics.line(c.x,c.y,u.x,u.y)
+        love.graphics.line(c.x,c.y,c2.x,c2.y)
       end
     end
     -- draw loot
@@ -145,7 +161,18 @@ function server.draw()
   love.graphics.setColor(0,255,0)
   love.graphics.printf("Players "..gameInfo.playercount_alive.."/"..gameInfo.playercount,5,5,love.graphics.getWidth(),"left")
 
+  -- draw fps
+  love.graphics.setColor(255,255,0)
+  love.graphics.printf(love.timer.getFPS() or "",5,75,love.graphics.getWidth(),"left")
 end
+
+
+
+
+
+
+
+
 
 function server.update(dt)
   server.clock = server.clock + dt
@@ -164,19 +191,22 @@ function server.update(dt)
         c.dead = true
       end
       -- calc player hitareas
+      c.enemies = {}
+      c.enemiesPacked = ""
       local visibleTo = {}
       if c.x and c.y and not c.inPlane then
         for k2,c2 in pairs( players ) do
           if c2.x and c2.y and k2 ~= k and not c2.inPlane then
             square_dist = (c.x - c2.x)^2 + (c.y - c2.y)^2
             if square_dist < viewDistance^2 then
-              table.insert(visibleTo,k2)
+              local e = {}
+              -- enemy = Net.users[e]
+              table.insert(c.enemies,players[k2])
               -- print(k," <-> ",k2,square_dist)
             end
           end
         end
       end
-      c.visibleTo = visibleTo
 
       -- fix users
       if not c.health then
@@ -188,62 +218,73 @@ function server.update(dt)
       if not c.rank then
         c.rank = 100
       end
-      if c.inPlane then
-        c.x = plane.x
-        c.y = plane.y
-      end
     end
 
-    -- send collision info
-    coltime = coltime + dt
-    if coltime > server.visibleToUpdateTime and players then
-      coltime = 0
-      -- enemies = {}
-      for k,u in pairs( players ) do
-        if not u.visibleTo then break end
-        for j,e in pairs( u.visibleTo ) do
-          -- table.insert(enemies,Net.users[e])
-          local enemy = {}
-          -- enemy = Net.users[e]
-          enemy.id = e
-          enemy.name = players[e].name
-          enemy.x = players[e].x
-          enemy.y = players[e].y
-          enemy.r = players[e].r
-          enemy.g = players[e].g
-          enemy.b = players[e].b
-          enemy.aimX = players[e].aimX
-          enemy.aimY = players[e].aimY
-          enemy.lastSeen = 1
-          if not enemy.inPlane then
-            -- Net:send(enemy,"updateEnemies",nil,k)
-          end
-          -- print('updateEnemy',k)
-        end
-      end
-    end
 
     gameInfo.serverClock = server.clock
 
     -- game info update
+    gameInfo.playercount = tablelength(players)
+    gameInfo.playercount_alive = alivecount(players)
+    gameInfo.playercount_plane = planecount(players)
+    gameInfo.restartWaitCounter = restartWaitCounter
+
+    -- if no enough players or just one alive
+    if gameInfo.playercount_alive <= 1 and gameInfo.gameState == "activated" then
+      restartWaitCounter = 0
+      for id,p in pairs( players ) do
+        if p.health > 0 then
+          gameInfo.winnerName = p.name.." "..p.id
+          p.health = 0
+          p.rank = 1
+        end
+      end
+      gameInfo.gameState = "restartWait"
+    end
+    if gameInfo.gameState == "restartWait" then
+      restartWaitCounter = restartWaitCounter + dt
+      if restartWaitCounter > restartWaitCounterMax then
+        lobby.start()
+      end
+    end
+
     sendGameInfo(dt)
 
   end
 end
+
+
+
+
+
+
+
+
 
 function sendGameInfo(dt)
   gameInfoNetUpdateCounter = gameInfoNetUpdateCounter + dt
   if gameInfoNetUpdateCounter >= gameInfoNetUpdateRate then
     gi = gameInfo
     -- update general
-    gi.playercount = tablelength(players)
-    gi.playercount_alive = alivecount(players)
+    gi.gameInfoNetUpdateRate = gameInfoNetUpdateRate
+    gi.planeActive = plane.active
     gi.planeX = plane.x
     gi.planeY = plane.y
+    gi.planeAngle = plane.angle
+    gi.planeFlightCounter = plane.flightCounter
     -- update player
-    for id,player in pairs( players ) do
+    for pid,player in pairs( players ) do
       gi.health = player.health
       gi.dead = player.dead
+      local enemies = {}
+      -- gi.enemies = table.concat(gi.enemies,",")
+      gi.enemiesPacked = ""
+      for uid,p in pairs( player.enemies ) do
+        if p.id then
+          gi.enemiesPacked = gi.enemiesPacked..";"..p.id..","..p.x..","..p.y
+        end
+      end
+      -- print("ep:"..gi.enemiesPacked)
       -- gameInfo.isPlane = user.isPlane or true
       if not player.dead then
         gi.rank = gi.playercount_alive
@@ -252,19 +293,29 @@ function sendGameInfo(dt)
         gi.rank = player.rank
       end
       gi.inPlane = player.inPlane
-      Net:send(gi,"updateGameInfo",nil,id)
+      -- gi.inPlaneQueue = player.inPlaneQueue
+      Net:send(gi,"updateGameInfo",nil,pid)
     end
     -- reset timer
     gameInfoNetUpdateCounter = 0
   end
 end
 
+
+
+
+
 function generateGameInfoForPlayer()
 end
 
+
+
+
+
 function server.keypressed(key)
   if key == 'r' then
-    startGame()
+    lobby.start()
+    -- startGame()
   end
 
   -- local data = {}
@@ -278,13 +329,20 @@ function server.keypressed(key)
 
 end
 
+
+
+
+
+
+
+
 function Net.event.server.userConnected(id)
-  print("connection from: "..id)
+  print("CONNECTED: "..id)
   local found = false
   for uid,player in pairs( players ) do
-    print(uid,id)
+    -- print(uid,id)
     if (uid == id) then
-      print(id..' reconnected. sending state')
+      print('RE: '..id)
       gameInfo.health = player.health
       gameInfo.dead = player.dead
       -- gameInfo.isPlane = user.isPlane or true
@@ -295,32 +353,60 @@ function Net.event.server.userConnected(id)
         gameInfo.rank = player.rank
       end
       found = true
-      Net:send(gameInfo,"updateGameInfo",nil,uid)
+      player.connected = true
+      -- Net:send(gameInfo,"updateGameInfo",nil,uid)
     end
   end
   if not found then
     players[id] = {}
+    players[id].id = id
     players[id].connected = true
+    players[id].dead = false
+    players[id].inPlane = true
+    players[id].inPlaneQueue = true
+    players[id].health = 100
   end
 end
 
+
+
 function Net.event.server.userDisconnected(id)
-  print("disconnection from: "..id)
+  print("DISCONNECTED: "..id)
   players[id].connected = false
+  players[id] = nil
 end
 
 
+
+
+
+
+
+
+
+
+
 function startGame()
+  gameInfo.gameState = "running"
   for uid,v in pairs( players ) do
     players[uid].health = 100
     players[uid].dead = false
     players[uid].inPlane = true
+    players[uid].inPlaneQueue = true
+    players[uid].inLobby = false
+    players[uid].enemies = {}
+    players[uid].enemiesPacked = ""
+    players[uid].x = 250
+    players[uid].y = 250
     Net:send({},"startGame",nil,uid)
   end
-  loot.load()
-  zone.reset()
-  -- plane.startCarrier()
+  plane.startCarrier()
 end
+
+
+
+
+
 
 function tablelength(T)
   local count = 0
@@ -332,6 +418,15 @@ function alivecount(T)
   local count = 0
   for _,u in pairs(T) do
     if not u.dead then
+      count = count + 1
+    end
+  end
+  return count
+end
+function planecount(T)
+  local count = 0
+  for _,u in pairs(T) do
+    if u.inPlane then
       count = count + 1
     end
   end

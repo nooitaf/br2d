@@ -34,6 +34,14 @@ end
 
 function zone.update(dt)
 
+  -- update idle time
+  if zone.idleTime > 0 then
+    zone.idleTime = zone.idleTime - dt
+    if zone.idleTime < 0 then
+      zone.idleTime = 0
+    end
+  end
+
   -- death zone updates
   if zone.idleTime == 0 and zone.animation then
     local complete = zone.animation:update(dt)
@@ -41,17 +49,9 @@ function zone.update(dt)
       zone.animation = nil
       createTargetDeathZone()
       zone.startCyclus()
-      zone.state = 'idle'
+      zone.state = 'waiting'
     else
       zone.state = 'moving'
-    end
-  end
-
-  -- update idle time
-  if zone.idleTime > 0 then
-    zone.idleTime = zone.idleTime - dt
-    if zone.idleTime < 0 then
-      zone.idleTime = 0
     end
   end
 
@@ -69,7 +69,7 @@ function zone.update(dt)
     for k,c in pairs( players ) do
       if c.x and c.y then
         square_dist = (c.x - zone.x)^2 + (c.y - zone.y)^2
-        if square_dist > zone.scale^2 then
+        if square_dist > zone.scale^2 and not c.inPlane then
           local dmg = c.health - zone.damage * dt
           if dmg < 0 then dmg = 0 end
           c.health = dmg
@@ -92,13 +92,17 @@ function zone.startCyclus()
 end
 
 function zone.reset()
+  if zone.animation then
+    zone.animation:reset()
+    zone.animation = nil
+  end
+  zone.state = 'off'
   server.clock = 0
   zone.x = 250
   zone.y = 250
   zone.scale = 350
   zone.active = false
-  createTargetDeathZone()
-  zone.state = 'ready'
+  zone.idleTime = 0
 end
 
 function zone.start()
@@ -109,8 +113,7 @@ function zone.start()
   zone.active = true
   createTargetDeathZone()
   zone.startCyclus()
-  zone.state = 'idle'
-
+  zone.state = 'waiting'
 end
 
 function createTargetDeathZone()

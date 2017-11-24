@@ -16,15 +16,16 @@ function plane.load()
   plane.ps:setColors(255,0,0,255,0,255,0,0)
   plane.x = -100
   plane.y = -100
-  plane.targetX = 400
-  plane.targetY = 400
-  plane.speed = 20*GAMESPEED
   plane.angle = 0
+  plane.targetX = -100
+  plane.targetY = -100
+  plane.speed = 20*GAMESPEED
   plane.animation = nil
   plane.jumpTimer = 10*GAMESPEED
   plane.isCarrier = false
   plane.active = false
   plane.items = {}
+  plane.flightCounter = 0
   -- plane.startCarrier()
 end
 
@@ -38,6 +39,7 @@ function plane.draw()
   if plane.active then
     love.graphics.setColor(255,255,255)
     local angle = angleFromPoint(plane.x,plane.y,plane.targetX,plane.targetY)
+    plane.angle = angle
     local rad = radiansWithDegrees(angle)
     love.graphics.draw(plane.img,plane.x,plane.y,-rad,0.5,0.5,32,32)
     -- love.graphics.rectangle("fill",plane.x-2,plane.y-2,4,4)
@@ -49,20 +51,25 @@ function plane.update(dt)
   plane.ps:moveTo(plane.x,plane.y)
   plane.ps:update(dt)
 
+  for u,c in pairs( players ) do
+    if c.inPlane then
+      c.x = plane.x
+      c.y = plane.y
+    end
+  end
+
   if plane.animation then
 
     plane.jumpTimer = plane.jumpTimer - dt
     if plane.jumpTimer <= 0 then
 
       if plane.type == 'support' then
-
         local item = table.remove(plane.items)
         if item then
           loot.dropSupportBox(plane.x,plane.y,10,item)
         end
-
-
-      elseif plane.type == 'carrier' then
+      end
+      if plane.flightCounter >= 3 then
         for u,c in pairs( players ) do
           if c.inPlane then
             c.inPlane = false
@@ -78,9 +85,13 @@ function plane.update(dt)
       if plane.ps:getCount() < 1 then
         plane.animation = nil
         if plane.type == 'carrier' then
-          zone.start()
+          -- if nobody jumped
+          if gameInfo.playercount_plane == gameInfo.playercount_alive and gameInfo.gameState == "running" then
+            lobby.start()
+          else
+            zone.start()
+          end
         elseif plane.type == 'support' then
-
         end
       end
     end
@@ -90,6 +101,17 @@ end
 
 
 
+function plane.stopAndRemoveEverything()
+  plane.type = 'carrier'
+  if plane.animation then
+    plane.animation:reset()
+    plane.animation = false
+  end
+  plane.active = false
+  plane.ps:stop()
+  plane.ps:reset()
+end
+
 
 function plane.startCarrier()
   plane.createFlight()
@@ -98,6 +120,7 @@ function plane.startCarrier()
   plane.jumpTimer = plane.speed - 1
   plane.active = true
   plane.ps:start()
+  plane.flightCounter = 1
 end
 
 
@@ -109,6 +132,7 @@ function plane.startSupport()
   plane.jumpTimer = math.random()*plane.speed/8*7
   plane.active = true
   plane.ps:start()
+  plane.flightCounter = plane.flightCounter + 1
 end
 
 

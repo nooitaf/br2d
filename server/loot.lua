@@ -6,10 +6,16 @@ function loot.load()
   loot.map = love.image.newImageData( 'assets/loot.png' )
   loot.possibleItems = {'gun','medkit','ammo'}
   loot.timer = 0
-  loot.timerTrigger = 5 * plane.speed
-  loot.generateLoot()
+  loot.timerTrigger = 2
+  loot.reset()
 end
 
+
+function loot.reset()
+  loot.items = {}
+  loot.timer = 0
+  loot.generateLoot()
+end
 function loot.draw()
   if #loot.items > 0 then
     for _,item in ipairs( loot.items ) do
@@ -35,7 +41,7 @@ function randomLootItem()
 end
 
 function createLootAtPosition(x,y,item)
-  print(#loot.possibleItems,x,y,item)
+  -- print(#loot.possibleItems,x,y,item)
   local lootItem = {
     x = x,
     y = y,
