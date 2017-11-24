@@ -1,5 +1,5 @@
-local class = require 'middleclass'
-local anim8 = require "lib/anim8"
+local class = require 'lib/middleclass'
+local anim8 = require 'lib/anim8'
 
 Car = class('Car')
 
