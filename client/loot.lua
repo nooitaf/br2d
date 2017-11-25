@@ -1,5 +1,4 @@
-loot = {}
-
+local loot = {}
 
 function loot.load()
   loot.items = {}
@@ -70,7 +69,7 @@ function loot.update(dt)
 end
 
 function loot.isItemInRange(item)
-  local c = client.data
+  local c = game.player:getInfo()
   local inRange = false
   local rangeAcceptance = 0.5
   local x = item.x+item.size/6
@@ -92,3 +91,5 @@ function loot.inRangeOfPlayer()
   end
   return inRangeItems or false
 end
+
+return loot

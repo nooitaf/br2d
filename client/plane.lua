@@ -1,5 +1,5 @@
-plane = {}
-tween = require 'lib/tween'
+local plane = {}
+local tween = require 'lib/tween'
 
 function plane.load()
   plane.img = love.graphics.newImage("assets/plane.png")
@@ -36,7 +36,7 @@ function plane.draw()
   -- plane
   if plane.active then
     love.graphics.setColor(255,255,255)
-    local angle = gameInfo.planeAngle
+    local angle = game.info.planeAngle
     -- local rad = radiansWithDegrees(angle)
     local rad = math.rad(angle)
 
@@ -60,9 +60,9 @@ end
 
 
 function plane.updatePosition()
-  if gameInfo.planeActive then
+  if game.info.planeActive then
     plane.active = true
-    plane.animation = tween.new(1/400,plane,{x=gameInfo.planeX, y=gameInfo.planeY},'inCubic')
+    plane.animation = tween.new(1/400,plane,{x=game.info.planeX, y=game.info.planeY},'inCubic')
     plane.ps:start()
   else
     plane.active = false
@@ -70,17 +70,4 @@ function plane.updatePosition()
   end
 end
 
-
-
-
-function angleFromPoint(x,y,x2,y2)
-  local dy = (y - y2)
-  local dx = (x - x2)
-  local theta = math.atan2(dy,dx)
-  local angle = (90 - ((theta * 180) / math.pi)) % 360
-  return angle
-end
-
-function radiansWithDegrees(deg)
-  return deg * math.pi / 180
-end
+return plane

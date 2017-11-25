@@ -6,19 +6,23 @@ end
 function isBuilding(x,y)
   -- update ground
   if x >= 0 and x < 250 and y >= 0 and y < 250 then
-    local r = bg_image:getPixel( x*2, y*2 )
+    local r = game.map.imageData:getPixel( x*2, y*2 )
     return r == 255
   end
+end
+
+function dist(x1,y1,x2,y2)
+  return math.sqrt( (x1 - x2)^2 + (y1 - y2)^2 )
 end
 
 function isBuildingWithScale(x,y,s)
   print(client.data.inPlane)
   if not client.data.inPlane then
     -- update ground
-    local r1 = bg_image:getPixel( x*2-s/2, y*2 )
-    local r2 = bg_image:getPixel( x*2+s/2, y*2 )
-    local r3 = bg_image:getPixel( x*2, y*2-s/2 )
-    local r4 = bg_image:getPixel( x*2, y*2+s/2 )
+    local r1 = game.map.imageData:getPixel( x*2-s/2, y*2 )
+    local r2 = game.map.imageData:getPixel( x*2+s/2, y*2 )
+    local r3 = game.map.imageData:getPixel( x*2, y*2-s/2 )
+    local r4 = game.map.imageData:getPixel( x*2, y*2+s/2 )
     -- print(r1,r2,r3,r4)
     return r1 == 255 or r2 == 255 or r3 == 255 or r4 == 255
   end
@@ -30,6 +34,10 @@ function angleFromPoint(x,y,x2,y2)
   local theta = math.atan2(dy,dx)
   local angle = (90 - ((theta * 180) / math.pi)) % 360
   return angle
+end
+
+function radiansWithDegrees(deg)
+  return deg * math.pi / 180
 end
 
 function distantPointWithAngleAndLength(angle,length)
