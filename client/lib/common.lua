@@ -41,22 +41,32 @@ function radiansWithDegrees(deg)
 end
 
 function distantPointWithAngleAndLength(angle,length)
-  if angle < 0 then angle = angle + 360000 end
+
+  print("angle/length",angle,length)
+  -- if angle < 0 then angle = angle + 360000 end
   local dir = 0
-  if angle >= 270 then
+  if angle > 270 then
     angle = 90 - (angle - 270)
     dir = 0
-  elseif angle >= 180 and angle < 270 then
+  elseif angle > 180 and angle < 270 then
     angle = angle - 180
     dir = 1
-  elseif angle >= 90 and angle < 180 then
+  elseif angle > 90 and angle < 180 then
     angle = 90 - (angle - 90)
     dir = 2
-  elseif angle < 90 and angle >= 0 then
+  elseif angle < 90 and angle > 0 then
     angle = angle
     dir = 3
+  elseif angle == 0 then
+    return 0,-length
+  elseif angle == 90 then
+    return -length,0
+  elseif angle == 180 then
+    return 0,length
+  elseif angle == 270 then
+    return length,0
   end
-  if angle == 90 then angle = angle - 0.0001 end
+
   local c = length
   local A = math.rad(angle)
   local C = math.rad(90)

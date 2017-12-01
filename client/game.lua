@@ -24,10 +24,6 @@ local auto = Car:new(4,2,2)
 auto:setPosition(203,189)
 auto:setRotation(0)
 table.insert(game.vehicles,auto)
-auto = Car:new(4,2,2)
-auto:setPosition(202,189)
-auto:setRotation(15)
-table.insert(game.vehicles,auto)
 
 local Player = require "player"
 
@@ -58,6 +54,19 @@ function game.load()
   pingval = 0
 
   game.loot.load()
+  game.loot.add({
+    x = 201,
+    y = 189,
+    size = 1,
+    content = 'bagpack'
+  })
+  game.loot.add({
+    x = 202,
+    y = 189,
+    size = 1,
+    content = 'helmet'
+  })
+
   game.plane.load()
   game.ground.load()
 
@@ -81,6 +90,12 @@ function game.update(dt)
       game.enemies[k] = nil
     end
   end
+
+  -- vehicles
+  for key,item in pairs(game.vehicles) do
+    item:update(dt)
+  end
+
 
 end
 
@@ -142,9 +157,25 @@ function game.keypressed(key)
     love.mouse.setRelativeMode( show_map )
   end
 
-  if key == 'f' then
-    game.player.inPlane = false
-    game.player:sendMetaToServer()
+  -- in plane
+  if game.player.inPlane then
+    if key == 'f' then
+      game.player.inPlane = false
+    end
+  else
+    -- in vehicle
+    if game.player.inVehicle then
+      game.player.vehicle:checkKeyboard(key)
+    else
+      if key == 'f' then
+        for i,vehicle in pairs(game.vehicles) do
+          if vehicle:inRangeOf(game.player) then
+            vehicle:enter(game.player)
+            return
+          end
+        end
+      end
+    end
   end
 
   -- game.player.keypressed(key)

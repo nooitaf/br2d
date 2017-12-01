@@ -27,6 +27,8 @@ function Player:initialize()
   self.running = self.runningLimit
   self.inPlane = true
   self.inPlaneQueue = true
+  self.inVehicle = false
+  self.vehicle = nil
   self.isShooting = false
   self.shootTimer = 0
   self.shootTimerTrigger = 1/10
@@ -84,6 +86,8 @@ function Player:movementUpdate(dt)
     return
   end
 
+  -- rotation fix
+  if self.viewDirection < 0 then self.viewDirection = self.viewDirection + 360000 end
   -- position update
   local target = {}
   target.x = self.x
@@ -105,10 +109,11 @@ function Player:movementUpdate(dt)
   local speed = self.speedWalking
   if self.isRunning then speed = self.speedRunning end
   if love.keyboard.isDown('up') or love.keyboard.isDown('w') then
-    x, y = distantPointWithAngleAndLength(self.viewDirection, speed)
-    target.x = target.x + x
-    target.y = target.y + y
-    self.isWalking = true
+      x, y = distantPointWithAngleAndLength(self.viewDirection, speed)
+      target.x = target.x + x
+      target.y = target.y + y
+      self.isWalking = true
+    -- end
   end
   if love.keyboard.isDown('left')  or love.keyboard.isDown('a') then
     x, y = distantPointWithAngleAndLength(self.viewDirection+90, speed)
@@ -130,6 +135,8 @@ function Player:movementUpdate(dt)
   end
   -- print(self.viewDirection,speed, x, y, target.x,target.y)
 
+
+
   -- adjust body rotation
   self.bodyDirection = self.bodyDirection - (self.bodyDirection - self.viewDirection)/self.bodyDirectionRate
 
@@ -147,6 +154,16 @@ function Player:movementUpdate(dt)
     target.x = game.info.planeX
     target.y = game.info.planeY
   end
+
+  if self.inVehicle then
+    local v = self.vehicle
+
+    v:checkKeyboard()
+    self.isWalking = false
+    target.x = v.x
+    target.y = v.y
+  end
+
 
   self.x = target.x
   self.y = target.y

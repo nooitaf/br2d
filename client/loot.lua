@@ -28,25 +28,10 @@ function loot.load()
     end
 
 	end )
-  loot.devDropLoot()
 end
 
-function loot.devDropLoot()
-
-  table.insert(loot.items,{
-    x = 201,
-    y = 189,
-    size = 1,
-    content = 'bagpack'
-  })
-  table.insert(loot.items,{
-    x = 202,
-    y = 189,
-    size = 1,
-    content = 'helmet'
-  })
-
-
+function loot.add(item)
+  table.insert(loot.items,item)
 end
 
 function loot.draw()

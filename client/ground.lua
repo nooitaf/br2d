@@ -35,12 +35,14 @@ function ground.draw()
   local h = love.graphics.getHeight()
   local scale = .0417
 
-  for row = -5,5 do
-    for col = -5,5 do
+  for row = -15,15 do
+    for col = -15,15 do
       local px = round(game.player.x) + row/2
       local py = round(game.player.y) + col/2
       local g = ground.getGround(px,py)
-      love.graphics.setColor( 255, 255, 255, 150 )
+      local alpha = 100
+      alpha = alpha - dist(px,py,game.player.x,game.player.y)*15
+      love.graphics.setColor( 255, 255, 255, alpha )
       if g == "gras" then
         for i = 1,4 do
           love.graphics.draw(sprites_grounds,sprites.gras[i],px,py,0,scale,scale)

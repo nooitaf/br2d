@@ -5,9 +5,10 @@ local Car = class('Car', Vehicle)
 
 function Car:initialize(wheels, seats, doors)
   Vehicle.initialize(self)
-  self.wheels = wheels
-  self.seats = seats
-  self.doors = doors
+  self.wheels = 4
+  self.seats = 4
+  self.doors = 4
 end
+
 
 return Car
